@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peta Rekomendasi Wisata di Daerah Istimewa Yogyakarta</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet Routing Machine CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <!-- Font Awesome untuk ikon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 1.5rem 0;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        header p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column; /* Tetap column untuk mobile */
+            /* max-width: 1200px; */ /* Hapus atau komentari baris ini */
+            width: 100%; /* Tambahkan ini untuk memastikan lebar penuh */
+            margin: 0; /* Hapus margin auto */
+            padding: 0; /* Hapus padding jika tidak diinginkan */
+        }
+        
+        #map-container {
+            position: relative;
+            width: 100%;
+            height: 100vh; /* Ubah dari 70vh menjadi 100vh */
+            margin: 0; /* Ubah dari 1rem 0 menjadi 0 */
+            border-radius: 0; /* Hapus border-radius agar lebih menyatu */
+            overflow: hidden;
+            box-shadow: none; /* Hapus shadow jika tidak diinginkan */
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .map-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .control-btn {
+            background: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .control-btn:hover {
+            background: #f0f0f0;
+            transform: translateY(-1px);
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 12px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            font-size: 0.9rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            border-radius: 50%;
+        }
+        
+        .sidebar {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .filter-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .info-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .info-panel h2 {
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
+        }
+        
+        .info-panel p {
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: #555;
+        }
+        
+        .info-panel img {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        @media (min-width: 768px) {
+            .container {
+                flex-direction: row;
+            }
+            
+            #map-container {
+                flex: 1;
+                margin-right: 0rem;
+            }
+            
+            .sidebar {
+                flex: 1;
+                max-width: 300px;
+                height: 100vh; /* Tambahkan ini agar sidebar juga setinggi viewport */
+                overflow-y: auto; /* Tambahkan scroll jika konten sidebar melebihi tinggi */
+                border-radius: 0; /* Hapus border-radius agar lebih menyatu */
+    
+            }
+        }
+        
+        /* Popup style */
+        .leaflet-popup-content-wrapper {
+            border-radius: 6px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .leaflet-popup-content {
+            margin: 8px 12px;
+        }
+        
+        .popup-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+        
+        .popup-image {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin: 4px 0;
+        }
+        
+        .popup-category {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #3498db;
+            color: white;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin: 4px 0;
+        }
+        
+        .popup-description {
+            font-size: 0.9rem;
+            margin: 4px 0;
+        }
+        
+        .popup-link {
+            display: inline-block;
+            margin-top: 4px;
+            color: #3498db;
+            text-decoration: none;
+            font-size: 0.8rem;
+        }
+        
+        .popup-link:hover {
+            text-decoration: underline;
+        }
+        
+        /* Routing controls */
+        .route-controls {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .route-controls h3 {
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+            font-size: 1rem;
+        }
+        
+        .route-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .route-btn {
+            padding: 0.5rem 1rem;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            flex: 1;
+        }
+        
+        .route-btn:hover {
+            background: #2980b9;
+        }
+        
+        .route-btn.clear {
+            background: #e74c3c;
+        }
+        
+        .route-btn.clear:hover {
+            background: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><i class="fas fa-map-marked-alt"></i> Peta Rekomendasi Wisata di Daerah Istimewa Yogyakarta</h1>
+        <p>Bersama Susuri Keindahan Alam, Cicipi Khazanah Kuliner, dan Lestarikan Budaya Luhur Daetah Istimewa Yogyakarta</p>
+    </header>
+    
+    <div class="container">
+        <div id="map-container">
+            <div id="map"></div>
+            
+            <div class="map-controls">
+                <button class="control-btn" id="zoom-in" title="Zoom In">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="control-btn" id="zoom-out" title="Zoom Out">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button class="control-btn" id="locate-me" title="Lokasi Saya">
+                    <i class="fas fa-location-arrow"></i>
+                </button>
+                <button class="control-btn" id="reset-view" title="Reset Peta">
+                    <i class="fas fa-globe-asia"></i>
+                </button>
+            </div>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #e74c3c;"></div>
+                    <span>Wisata Alam</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #3498db;"></div>
+                    <span>Wisata Budaya</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #f39c12;"></div>
+                    <span>Wisata Kuliner</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="sidebar">
+            <div class="filter-controls">
+                <div class="filter-group">
+                    <label for="category-filter"><i class="fas fa-filter"></i> Filter Kategori</label>
+                    <select id="category-filter">
+                        <option value="all">Semua Kategori</option>
+                        <option value="alam">Wisata Alam</option>
+                        <option value="budaya">Wisata Budaya</option>
+                        <option value="kuliner">Wisata Kuliner</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="district-filter"><i class="fas fa-map-marker-alt"></i> Filter Kabupaten/Kota</label>
+                    <select id="district-filter">
+                        <option value="all">Semua Daerah</option>
+                        <option value="yogyakarta">Kota Yogyakarta</option>
+                        <option value="bantul">Bantul</option>
+                        <option value="sleman">Sleman</option>
+                        <option value="gunungkidul">Gunung Kidul</option>
+                        <option value="kulonprogo">Kulon Progo</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="route-controls">
+                <h3><i class="fas fa-route"></i> Rute Perjalanan</h3>
+                <div class="filter-group">
+                    <label for="start-point">Titik Awal</label>
+                    <select id="start-point">
+                        <option value="">Pilih titik awal</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="end-point">Titik Tujuan</label>
+                    <select id="end-point">
+                        <option value="">Pilih titik tujuan</option>
+                    </select>
+                </div>
+                <div class="route-actions">
+                    <button id="show-route" class="route-btn">Tampilkan Rute</button>
+                    <button id="clear-route" class="route-btn clear">Hapus Rute</button>
+                </div>
+            </div>
+            
+            <div class="info-panel hidden" id="info-panel">
+                <h2 id="info-title">Nama Wisata</h2>
+                <img id="info-image" src="" alt="Gambar Wisata">
+                <p id="info-category"></p>
+                <p id="info-location"></p>
+                <p id="info-description"></p>
+                <a id="info-link" href="#" target="_blank" class="popup-link">Lebih lanjut →</a>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>© Kelompok 12 Praktikum SIG Terapan</p>
+    </footer>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet Routing Machine JS -->
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <script>
+        // Inisialisasi peta dengan view ke Yogyakarta
+        const map = L.map('map').setView([-7.797068, 110.370529], 11);
+        
+        // Tambahkan tile layer dari OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Data wisata Yogyakarta (hanya alam, budaya, dan kuliner)
+        const tourismData = [
+            
+            {
+                name: "Bukit Klangon",
+                category: "alam",
+                district: "sleman",
+                lat: -7.57491808461195,
+                lng: 110.4552815,
+                description: "- Destinasi wisata populer di lereng Gunung Merapi yang menawarkan panorama sunrise dan sunset terbaik di Yogyakarta. Terletak di ketinggian sekitar 700 meter di atas permukaan laut, bukit ini memberikan pemandangan spektakuler kota Yogyakarta dari atas dengan latar belakang Gunung Merapi yang megah. Pengunjung dapat menikmati udara sejuk pegunungan sambil berburu foto Instagram di berbagai spot menarik yang tersedia. Akses menuju lokasi cukup mudah dengan kendaraan pribadi atau ojek, dan tersedia warung-warung kecil yang menjual makanan ringan dan minuman hangat.",
+                image: "https://i.pinimg.com/736x/37/6f/bc/376fbc752ead0623535ea980ec3f9cf3.jpg",
+                link: "https://nativeindonesia.com/bukit-klangon-jogja/?utm_source=pinterest&utm_medium=pin#google_vignette"
+            },
+            {
+                name: "Grojongan Watu Purbo",
+                category: "alam",
+                district: "sleman",
+                lat: -7.630128963573181,
+                lng: 110.3411972518454,
+                description: "- Air terjun tersembunyi yang menjadi permata alam di kawasan Gunungkidul. Air terjun ini dikelilingi oleh formasi bebatuan karst yang unik dan vegetasi hijau yang masih alami. Suara gemericik air yang jatuh dari ketinggian menciptakan suasana yang menenangkan, cocok untuk meditasi atau sekadar melepas penat dari hiruk pikuk kota. Pengunjung perlu melakukan trekking ringan untuk mencapai lokasi, namun perjalanan tersebut akan terbayar dengan keindahan alam yang masih virgin dan udara segar pegunungan yang menyegarkan.",
+                image: "https://i.pinimg.com/1200x/a7/50/0d/a7500d5901b1736a76d3f5264d811b8a.jpg",
+                link: "https://www.dejava.net/dejogja/grojogan-watu-purbo-sleman#google_vignette"
+            },
+            {
+                name: "Watu Payung",
+                category: "alam",
+                district: "sleman",
+                lat: -7.792546891064469,
+                lng: 110.5209264969345,
+                description: "- Formasi batu alam yang unik menyerupai payung raksasa, menjadi salah satu spot foto paling viral di media sosial. Terletak di kawasan perbukitan Gunungkidul, tempat ini menawarkan panorama 360 derajat yang memukau dengan hamparan bukit-bukit karst yang berjejer hingga horizon. Keunikan geologis batuan ini terbentuk dari proses erosi ribuan tahun yang menciptakan bentuk menyerupai payung alami. Waktu terbaik berkunjung adalah sore hari menjelang sunset ketika cahaya matahari memberikan efek dramatis pada formasi batuan dan landscape sekitarnya.",
+                image: "https://i.pinimg.com/736x/3f/db/52/3fdb52fd82b3e1226332333e8ece02d1.jpg",
+                link: "https://www.itrip.id/watu-payung-turunan-gunung-kidul#google_vignette"
+            },
+            {
+                name: "Jeep Merapi",
+                category: "alam",
+                district: "sleman",
+                lat: -7.59569895,
+                lng: 110.4395933,
+                description: "Jeep Merapi menawarkan petualangan seru menjelajahi lereng Gunung Merapi menggunakan kendaraan jeep 4WD yang tangguh, memberikan pengalaman wisata adventure yang menantang adrenalin sambil menikmati panorama alam vulkanis yang menakjubkan, dimana wisatawan akan diajak melewati jalur-jalur terjal dengan pemandangan hamparan pasir vulkanik yang luas, sisa-sisa aliran lahar dingin dari letusan Merapi, museum mini Sisa Hartaku yang menyimpan benda-benda peninggalan korban letusan, bunker atau tempat perlindungan warga saat terjadi erupsi, dan puncaknya adalah kunjungan ke kawasan Kaliurang untuk menikmati udara sejuk pegunungan sambil belajar tentang sejarah dan aktivitas vulkanologi Gunung Merapi yang merupakan salah satu gunung berapi paling aktif di Indonesia.",
+                image: "https://i.pinimg.com/736x/e1/80/99/e18099abb6096cc34f196298dcab2195.jpg",
+                link: "https://www.administrasipublik.com/2021/01/lava-tour-merapi-wisata-petualanagan.html"
+            },
+            {
+                name: "Tankaman",
+                category: "alam",
+                district: "sleman",
+                lat: -7.601220036,
+                lng: 110.4329217,
+                description: "Tankaman Natural Park merupakan destinasi wisata alam yang menawarkan pengalaman tak terlupakan dengan konsep ekowisata yang memadukan keindahan alam pegunungan dengan berbagai fasilitas rekreasi modern, dimana pengunjung dapat menikmati pemandangan spektakuler hamparan hijau perbukitan Yogyakarta sambil merasakan kesejukan udara pegunungan yang menyegarkan, dilengkapi dengan spot-spot foto instagramable yang tersebar di berbagai sudut taman, kolam renang alami dengan air jernih yang mengalir langsung dari mata air pegunungan, serta berbagai wahana permainan dan aktivitas outdoor seperti flying fox, wall climbing, dan area camping yang memungkinkan wisatawan untuk bermalam di tengah suasana alam yang asri dan tenang.",
+                image: "https://static.promediateknologi.id/crop/0x0:0x0/0x0/webp/photo/p2/65/2024/09/01/29D04607-0498-4A48-ADB6-E45152BC6797-805580098.jpeg",
+                link: "https://radarjogja.jawapos.com/wisata/655041373/menikmati-keindahan-gunung-merapi-di-tankaman-natural-park-tempat-yang-tenang-untuk-berwisata"
+            },
+            {
+                name: "Watu Langit",
+                category: "kuliner",
+                district: "sleman",
+                lat: -7.792546891064469,
+                lng: 110.5209264969345,
+                description: "Tebing batu kapur yang menjulang tinggi dengan nama yang tepat menggambarkan sensasi berada di tepi langit. Dari puncak tebing ini, pengunjung dapat merasakan sensasi berdiri di atas awan dengan pemandangan lembah hijau yang membentang luas di bawahnya. Formasi batuan karst yang unik menciptakan berbagai sudut pandang yang menakjubkan, terutama saat golden hour ketika langit berubah warna menjadi jingga keemasan. Tempat ini juga populer sebagai spot camping bagi para petualang yang ingin menikmati keindahan langit malam penuh bintang.",
+                image: "https://akcdn.detik.net.id/community/media/visual/2021/02/04/dev-menikmati-yogyakarta-dari-ketinggian-di-watu-langit.jpeg?w=700&q=90",
+                link: "https://travel.detik.com/cerita-perjalanan/d-5388835/menikmati-yogyakarta-dari-ketinggian-di-watu-langit/1"
+            },
+            {
+                name: "Sate Pak Bayu",
+                category: "kuliner",
+                district: "sleman",
+                lat: -7.717423201332983,
+                lng: 110.40996618548877,
+                description: "Warung sate legendaris yang telah melayani pelanggan sejak puluhan tahun dengan resep bumbu kacang rahasia yang turun temurun. Daging kambing pilihan yang dipanggang dengan arang memberikan aroma dan rasa yang khas. Bumbu kacang yang gurih dengan tingkat kepedasan yang pas menjadi daya tarik utama. Suasana warung yang sederhana namun penuh kehangatan mencerminkan kearifan lokal dalam berbisnis kuliner. Tempat ini menjadi destinasi wajib bagi pecinta kuliner otentik Yogyakarta.",
+                image: "https://blue.kumparan.com/image/upload/fl_progressive,fl_lossy,c_fill,f_auto,q_auto:best,w_640/v1634025439/01j19a772cetgcrrgbmee5je3p.jpg",
+                link: "https://kumparan.com/kumparanfood/super-besar-iga-sapi-bakar-di-warung-sop-dan-sate-pak-bayu-jogja-231F5jOkLpb/4"
+            },
+            {
+                name: "Sate Gedhe",
+                category: "kuliner",
+                district: "sleman",
+                lat: -7.725714126915189,
+                lng: 110.2476585757971,
+                description: "Warung sate dengan konsep porsi besar yang mengenyangkan dan cita rasa yang tak kalah dengan sate premium lainnya. Keunikan tempat ini terletak pada ukuran sate yang memang lebih besar dari biasanya dengan daging yang tebal dan empuk. Bumbu marinasi yang meresap sempurna memberikan rasa yang rich dan kompleks. Harga yang terjangkau dengan porsi yang besar memberikan value yang excellent bagi pengunjung. Tempat ini populer di kalangan mahasiswa dan keluarga yang mencari makan kenyang dengan budget terbatas.",
+                image: "https://lh3.googleusercontent.com/p/AF1QipPJVwh86Qs3nGZPJX6uuFVrqhHV_rVjgBT_CSFN=s1360-w1360-h1020-rw",
+                link: "https://joglosemar.id/sategedhe-pasar-minggir/"
+            },
+            {
+                name: "Kopi Klothok",
+                category: "kuliner",
+                district: "sleman",
+                lat: -7.668786543929495,
+                lng: 110.42079367504593,
+                description: "Tradisi minum kopi khas Yogyakarta dengan metode penyeduhan menggunakan klothok (cangkir kecil) dan proses yang unik. Biji kopi lokal pilihan yang dipanggang dengan teknik tradisional menghasilkan aroma dan rasa yang distinctive. Proses seduh yang dilakukan di depan pelanggan memberikan pengalaman yang entertaining dan authentic. Suasana kedai yang tradisional dengan peralatan kopi vintage menciptakan atmosfer yang nostalgic. Tempat ini menjadi daya tarik tersendiri bagi coffee enthusiast yang ingin merasakan kopi tradisional Indonesia.",
+                image: "https://i.pinimg.com/736x/a5/84/34/a58434d17fa7e8708d7a42994a6dc824.jpg",
+                link: "https://www.yogyes.com/id/yogyakarta-culinary/kopi-klotok/"
+            },
+            {
+                name: "Kopi Merapi",
+                category: "kuliner",
+                district: "sleman",
+                lat: -7.602291320429637,
+                lng: 110.44570614013485,
+                description: "Kedai kopi yang menggunakan biji kopi arabica premium dari lereng Gunung Merapi dengan karakteristik rasa yang unik akibat tanah vulkanik. Proses roasting yang careful menghasilkan coffee profile yang balance antara acidity dan body. Menu yang beragam dari espresso hingga manual brewing memberikan options untuk berbagai preferensi. Interior yang cozy dengan view ke arah Merapi memberikan experience yang memorable. Tempat ini cocok untuk coffee date, meeting, atau sekadar menikmati quality time sambil menyesap kopi berkualitas.",
+                image: "https://nagantour.com/wp-content/uploads/2024/03/warung-kopi-merapi-jogja-.webp",
+                link: "https://nagantour.com/kopi-merapi-jogja/"
+            },
+            {
+                name: "Candi Prambanan",
+                category: "budaya",
+                district: "sleman",
+                lat: -7.751521363311782,
+                lng: 110.491407851397,
+                description: "Kompleks candi Hindu terbesar dan terindah di Indonesia yang telah ditetapkan sebagai Situs Warisan Dunia UNESCO. Dibangun pada abad ke-9, kompleks ini terdiri dari ratusan candi dengan tiga candi utama yang didedikasikan untuk Trimurti Hindu: Brahma, Wisnu, dan Siwa. Relief Ramayana yang mengelilingi candi menceritakan epik klasik India dengan detail yang menakjubkan. Pertunjukan Ramayana yang digelar secara rutin di panggung terbuka dengan latar belakang candi memberikan pengalaman budaya yang tak terlupakan. Kompleks ini juga menawarkan museum dan pusat informasi yang memberikan edukasi mendalam tentang sejarah dan budaya Hindu-Buddha",
+                image: "https://i.pinimg.com/736x/b7/27/92/b72792526028f5e372272d00c37a3590.jpg",
+                link: "https://galeriwisata.wordpress.com/wisata-jawa/wisata-yogyakarta/candi-prambanan/"
+            },
+            {
+                name: "Candi Sambisari",
+                category: "budaya",
+                district: "sleman",
+                lat: -7.76232722596358,
+                lng: 110.4471304262336,
+                description: "Candi Hindu yang unik karena ditemukan terkubur di bawah tanah dan baru digali pada tahun 1966. Candi ini diperkirakan dibangun pada abad ke-9 dan memiliki arsitektur yang masih sangat baik terawat. Struktur candi yang berada di bawah permukaan tanah menciptakan suasana mystical yang unik. Relief dan ornamen yang terdapat pada dinding candi menunjukkan tingginya kemampuan seni pahat pada masa itu. Pengunjung dapat mempelajari sejarah Hindu-Buddha di Jawa sambil menikmati keunikan arsitektur candi yang langka ini.",
+                image: "https://i.pinimg.com/736x/13/74/a4/1374a4eff98a55e048272185fc68ed15.jpg",
+                link: "https://infojogja99.blogspot.com/2018/04/candi-sambisari-jogja.html?spref=pi"
+            },{
+                name: "Museum Gunung Merapi",
+                category: "budaya",
+                district: "sleman",
+                lat: -7.615290483295855,
+                lng: 110.4244044629354,
+                description: "Museum modern yang didedikasikan untuk edukasi tentang gunung berapi dengan teknologi simulasi yang canggih. Koleksi museum mencakup berbagai aspek vulkanologi, dari sejarah letusan Merapi hingga dampaknya terhadap kehidupan masyarakat. Simulasi letusan gunung berapi memberikan pengalaman immersive yang mendebarkan namun edukatif. Diorama dan replica yang detail membantu pengunjung memahami proses geologis pembentukan gunung berapi. Program edukasi yang tersedia cocok untuk pelajar dan peneliti yang ingin mendalami ilmu vulkanologi.",
+                image: "https://i.pinimg.com/736x/56/f4/31/56f431f0f5a6a7a48b6b6ddf549fe658.jpg",
+                link: "https://nativeindonesia.com/museum-gunung-merapi/?utm_source=pinterest&utm_medium=pin"
+            },{
+                name: "Goa Maria Sendang Sriningsih",
+                category: "budaya",
+                district: "sleman",
+                lat: -7.798655118844426,
+                lng: 110.52528910744522,
+                description: "Goa Maria Sendang Sriningsih merupakan tempat ziarah rohani Katolik yang terletak di dalam gua alami dengan suasana mistis dan sakral, dimana umat Kristiani dari berbagai daerah datang untuk berdoa dan melakukan refleksi spiritual di hadapan patung Bunda Maria yang ditempatkan di dalam gua yang dihiasi dengan stalaktit dan stalagmit alami yang terbentuk selama ribuan tahun, menciptakan atmosfer yang tenang dan khusyuk untuk kontemplasi, dilengkapi dengan mata air jernih yang dipercaya memiliki khasiat penyembuhan dan keberkahan, serta area parkir yang luas, fasilitas ibadah yang memadai, dan akses jalan yang mudah dijangkau sehingga cocok untuk wisata rohani keluarga maupun rombongan paroki yang ingin mendekatkan diri kepada Tuhan dalam suasana alam yang asri dan damai.",
+                image: "https://i.pinimg.com/736x/7c/ed/fd/7cedfd87de401392feb3d2e76704d4f1.jpg",
+                link: "https://www.yogyes.com/id/yogyakarta-tourism-object/pilgrimage-sites/sendang-sriningsih/"
+            },{
+                name: "Candi Banyunibo",
+                category: "budaya",
+                district: "sleman",
+                lat: -7.776951628730438,
+                lng: 110.49382335796119,
+                description: "Candi Buddha yang mungil namun memiliki keunikan arsitektur yang menawan. Dibangun pada abad ke-8 atau ke-9, candi ini memiliki struktur yang berbeda dari candi-candi lain di Jawa dengan bentuk yang lebih ramping dan elegan. Ornamen dan relief yang terdapat pada candi menunjukkan pengaruh seni Buddha Mahayana. Lokasi candi yang berada di tengah persawahan memberikan suasana yang tenang dan damai, cocok untuk meditasi dan kontemplasi. Meskipun berukuran kecil, candi ini memiliki nilai sejarah dan arsitektur yang tinggi.",
+                image: "https://i.pinimg.com/736x/32/b2/3a/32b23a0460469200a0af25a1cdc2f9f7.jpg",
+                link: "https://www.dejava.net/dejogja/candi-banyunibo-sleman"
+            },
+            {
+                name: "Kebun Buah Mangunan",
+                category: "alam",
+                district: "bantul",
+                lat: -7.941,
+                lng: 110.4247,
+                description: "Kebun Buah Mangunan adalah destinasi agrowisata yang terletak di kawasan perbukitan Dlingo, Bantul, yang menawarkan pengalaman unik memetik buah-buahan tropis langsung dari pohonnya sambil menikmati pemandangan spektakuler hamparan kebun buah yang terbentang luas dengan latar belakang pegunungan Yogyakarta, dimana pengunjung tidak hanya dapat merasakan kesegaran buah-buahan lokal seperti rambutan, mangga, durian, dan salak, tetapi juga dapat belajar tentang teknik budidaya buah modern, proses pemeliharaan tanaman, hingga pengolahan hasil panen menjadi berbagai produk olahan seperti dodol, manisan, dan keripik buah, sambil menikmati udara sejuk pegunungan dan spot-spot foto menarik dengan gardu pandang yang memberikan vista panoramik ke arah Pantai Selatan dan Kota Yogyakarta.",
+                image: "https://i.pinimg.com/736x/e1/23/35/e12335116cc443bc51c35df671e7cad0.jpg",
+                link: "https://www.nurrochma.com/2018/01/puncak-kebun-buah-mangunan-yogyakarta.html"
+            },
+            {
+                name: "Pantai Parangtritis",
+                category: "alam",
+                district: "bantul",
+                lat: -8.0183,
+                lng: 110.3214,
+                description: "Pantai paling legendaris di Yogyakarta dengan pasir hitam vulkanik yang membentang luas dan ombak besar yang menantang. Pantai ini kaya akan mitos dan legenda, terutama tentang Ratu Kidul yang dipercaya menjadi penguasa laut selatan. Sunset di Parangtritis sangat spektakuler dengan siluet Gunung Merapi di kejauhan. Aktivitas yang dapat dilakukan sangat beragam, mulai dari berkuda di sepanjang pantai, naik andong, hingga menjelajahi gumuk pasir dengan ATV. Fasilitas lengkap tersedia termasuk hotel, restoran, dan berbagai warung makanan laut segar.",
+                image: "https://i.pinimg.com/736x/10/05/f4/1005f49ae29e15a9fc9371bda869d21c.jpg",
+                link: "https://www.kompasiana.com/destryfauziah2525/65565526edff765ecb032802/mengenal-lebih-dalam-pantai-parangtritis-pantai-selatan"
+            },
+            {
+                name: "Makam Raja Imogiri",
+                category: "alam",
+                district: "bantul",
+                lat: -7.920183919,
+                lng: 110.3956658,
+                description: "Kompleks pemakaman raja-raja Mataram yang terletak di puncak bukit dengan arsitektur yang megah dan sakral. Kompleks ini menjadi tempat dimakamkannya Sultan Agung dan rajaraja penerusnya dengan tata ruang yang mencerminkan kosmologi Jawa. Arsitektur makam yang memadukan gaya Islam dan Jawa menciptakan suasana yang khidmat dan bersejarah. Ritual ziarah yang masih dilakukan oleh masyarakat Jawa menunjukkan relevansi spiritual tempat ini. Pemandangan dari kompleks makam juga sangat indah dengan panorama perbukitan dan persawahan yang hijau.",
+                image: "https://i.pinimg.com/736x/86/ac/6e/86ac6edab0b3329ec6581acc965ae4f2.jpg",
+                link: "https://www.joglowisata.com/makam-raja-imogiri-makam-suci-raja-pengingat-bagi-sang-penghianat.htm"
+            },
+            {
+                name: "Pantai Pandansari",
+                category: "alam",
+                district: "bantul",
+                lat: -8.000455813,
+                lng: 110.2532717,
+                description: "Pantai yang lebih tenang dan sepi dibandingkan Parangtritis, menawarkan suasana yang lebih intimate dan romantis. Hamparan pasir putih kecokelatan yang bersih dan ombak yang relatif tenang membuatnya cocok untuk berbagai aktivitas pantai. Sunset di pantai ini sangat memukau dengan warna langit yang berubah dari biru ke jingga keemasan. Pengunjung dapat menikmati seafood segar di warung-warung tepi pantai sambil mendengarkan suara deburan ombak. Tempat ini juga populer untuk pre-wedding photography dengan background natural yang indah.",
+                image: "https://i.pinimg.com/736x/67/0c/37/670c373f639e84f4b0f8a53b4d6c0241.jpg",
+                link: "https://travel.detik.com/destination/d-7269034/pesona-pantai-pandansari-di-jogja-dengan-mercusuar-nan-ikonik"
+            },
+            {
+                name: "Lembah Oyo",
+                category: "alam",
+                district: "bantul",
+                lat: -7.948892021,
+                lng: 110.4251319,
+                description: "Lembah hijau yang dikelilingi tebing-tebing karst tinggi, menciptakan canyon alami yang spektakuler. Tempat ini populer untuk aktivitas adventure seperti camping, rock climbing, dan caving. Ekosistem lembah yang unik menjadi habitat berbagai flora dan fauna langka. Pengunjung dapat menjelajahi gua-gua yang tersebar di sekitar lembah atau sekadar menikmati ketenangan alam sambil berkemah di bawah langit berbintang.",
+                image: "https://www.bakpiamutiarajogja.com/wp-content/uploads/2023/07/Lembah-Oyo-Kedung-Jati-Bantul.jpg",
+                link: "https://jogja.idntimes.com/travel/destination/lembah-oyo-kedung-jati-wisata-sungai-nan-syahdu-di-bantul-01-llcyy-zmp25k"
+            },
+            {
+                name: "Kopi Opak",
+                category: "kuliner",
+                district: "bantul",
+                lat: -7.829102902,
+                lng: 110.4522302,
+                description: "Kedai kopi dengan setting alam yang menawarkan pengalaman ngopi sambil menikmati pemandangan alam yang indah. Konsep outdoor seating dengan view hijau memberikan refreshing experience dari hiruk pikuk kota. Menu kopi yang variatif dengan harga yang reasonable membuatnya accessible untuk berbagai kalangan. Suasana yang relaxing dan Instagram-worthy membuatnya populer di kalangan millennials. Tempat ini perfect untuk healing, date, atau gathering dengan suasana yang laidback.",
+                image: "https://i.pinimg.com/736x/e1/db/98/e1db982d8874865c7468c0a7398b513c.jpg",
+                link: "https://visitingjogja.jogjaprov.go.id/31514/kopi-opak-tempat-ngopi-terhits-di-yogyakarta/"
+            },
+            {
+                name: "Sate Pak Pong",
+                category: "kuliner",
+                district: "bantul",
+                lat: -7.871121645146318,
+                lng: 110.38726209954119,
+                description: "Sate bakar dengan teknik pembakaran tradisional yang memberikan aroma smoky yang khas. Pemilihan daging yang berkualitas dan proses pembakaran yang sabar menghasilkan tekstur yang perfect antara tender dan slightly crispy. Sambal dan lalapan segar yang disajikan sebagai pelengkap menambah kesegaran dalam setiap gigitan. Lokasi yang strategis dan jam buka yang fleksibel membuatnya mudah diakses kapan saja. Warung ini menjadi favorit untuk makan malam santai bersama teman dan keluarga",
+                image: "https://i.pinimg.com/736x/a5/d3/ed/a5d3edac04a35505147731ec10fc9820.jpg",
+                link: "https://www.liputan6.com/regional/read/5530157/mengenal-sate-klathak-pak-pong-kuliner-legendaris-di-yogyakarta?page=3"
+            },
+            {
+                name: "Bumi Langit Institute",
+                category: "kuliner",
+                district: "bantul",
+                lat: -7.924058736903509,
+                lng: 110.410810000358,
+                description: "Bumi Langit Institute adalah pusat pembelajaran dan wisata edukasi yang mengusung konsep sustainable living dan pertanian organik, dimana pengunjung dapat belajar tentang gaya hidup berkelanjutan, teknik pertanian ramah lingkungan, dan filosofi hidup sederhana yang harmonis dengan alam melalui berbagai program workshop, pelatihan, dan kunjungan edukasi yang dipandu oleh praktisi berpengalaman, sambil menikmati suasana pedesaan yang asri dengan udara bersih, pemandangan sawah dan ladang organik yang hijau, serta fasilitas penginapan tradisional yang memungkinkan wisatawan untuk merasakan pengalaman hidup di desa dengan segala aktivitas pertanian seperti menanam padi, memelihara ternak, membuat kompos, hingga mengolah hasil panen menjadi makanan sehat dan bergizi tinggi.",
+                image: "https://i.pinimg.com/736x/34/97/8b/34978b38df266695d52a4aff230dc80b.jpg",
+                link: "https://gudeg.net/direktori/7231/bumi-langit-institute-jogja.html"
+            },
+            {
+                name: "Bebek Goreng Umar",
+                category: "kuliner",
+                district: "bantul",
+                lat: -7.989277319315951,
+                lng: 110.27478071449922,
+                description: "Rumah makan spesialis bebek goreng dengan resep bumbu tradisional yang telah teruji puluhan tahun. Bebek yang digoreng dengan teknik khusus menghasilkan kulit yang crispy namun daging yang tetap tender dan juicy. Sambal yang pedas gurih dan lalapan segar menjadi pelengkap yang perfect. Porsi yang generous dengan harga yang reasonable memberikan satisfaction yang tinggi. Tempat ini menjadi destinasi kuliner wajib bagi pecinta makanan tradisional Indonesia.",
+                image: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgrrQGX4Jg8xUOsmzRGapUwUj_TRX7ZQJ25jNABYlmHDDGdBuhHCuUK4B752dA8UdM0X1Y33IPeumYuIeJ9ie_vdDcRyCPn-CaKMCdH3_W0MIFWzR80YtjVu4N2zq8CbXoYZB_oVgRlHGJs/s1600/DSCN5779.JPG",
+                link: "https://mojok.co/liputan/bebek-goreng-pak-umar-plenteng-bantul-dan-rezeki-yang-tak-tertukar/"
+            },
+            {
+                name: "Kopi Becici",
+                category: "kuliner",
+                district: "bantul",
+                lat: -7.898168200648383,
+                lng: 110.4354027486114,
+                description: "Spot ngopi instagramable dengan panorama pegunungan yang spektakuler sebagai background. Konsep cafe yang menggabungkan indoor dan outdoor seating memberikan flexibility untuk berbagai mood dan cuaca. Menu yang tidak hanya kopi tetapi juga makanan ringan dan berat membuatnya cocok untuk berbagai occasion. Spot foto yang aesthetic dengan props yang menarik menjadi daya tarik tambahan. Tempat ini menjadi destinasi favorit untuk content creator dan photography enthusiast.",
+                image: "https://asset-2.tstatic.net/jogja/foto/bank/images/panggung-terbuka-dan-kedai-kopi-becici.jpg",
+                link: "https://jogja.tribunnews.com/2021/05/24/menikmati-kopi-dari-lantai-dua-bumi-projotamansaripenjelajahan-wisata-hutan-pinus-dlingo-bantul?lgn_method=google&google_btn=onetap"
+            },
+            {
+                name: "Museum Gumuk",
+                category: "budaya",
+                district: "bantul",
+                lat: -8.005632958668343,
+                lng: 110.2999891012805,
+                description: "Museum unik yang menampilkan koleksi pasir dari berbagai pantai di Indonesia dan dunia, memberikan perspektif baru tentang keragaman geologi pantai. Setiap sampel pasir memiliki karakteristik unik yang mencerminkan proses geologis dan lingkungan tempat asalnya. Program edukasi geologi dan oseanografi memberikan pemahaman tentang pembentukan pantai dan ekosistem laut. Microscope yang tersedia memungkinkan pengunjung untuk mengamati detail struktur pasir yang tidak terlihat mata telanjang. Museum ini cocok untuk wisata pendidikan keluarga dan penelitian ilmiah.",
+                image: "https://www.gudeg.net/cni-content/uploads/modules/direktori/logo/thumbs/large/20161215033435.jpg",
+                link: "https://mgp.big.go.id/"
+            },
+            {
+                name: "Museum Wayang",
+                category: "budaya",
+                district: "bantul",
+                lat: -7.810342198462911,
+                lng: 110.41494867427764,
+                description: "Museum yang didedikasikan khusus untuk seni wayang dengan koleksi yang mencakup berbagai jenis wayang dari seluruh Nusantara. Koleksi tidak hanya terbatas pada wayang kulit, tetapi juga wayang golek, wayang klitik, dan wayang modern. Sejarah perkembangan wayang dan tokohtokoh pentingnya disajikan secara kronologis dan informatif. Pertunjukan wayang dan workshop pembuatan wayang memberikan pengalaman hands-on yang menarik. Museum ini menjadi pusat studi dan pelestarian seni wayang yang sangat penting bagi budaya Indonesia.",
+                image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTKFHgCxCOuP9elJ3xuScNEEZxzbL3d8oOBZg&s",
+                link: "https://budaya.jogjaprov.go.id/artikel/detail/1-museum-wayang-kekayon"
+            },
+            {
+                name: "Keraton Yogyakarta",
+                category: "budaya",
+                district: "yogyakarta",
+                lat: -7.8054,
+                lng: 110.3649,
+                description: "Istana Sultan Hamengku Buwono yang masih berfungsi sebagai tempat tinggal keluarga kerajaan dan pusat budaya Jawa. Arsitektur keraton yang mengagumkan menggabungkan elemen Jawa, Hindu, dan Islam dalam satu kesatuan yang harmonis. Koleksi pusaka, gamelan, dan berbagai benda bersejarah memberikan insight mendalam tentang budaya Jawa. Pertunjukan budaya seperti tari klasik dan musik gamelan rutin digelar di dalam kompleks keraton. Pengunjung dapat mempelajari filosofi Jawa, sistem pemerintahan tradisional, dan kehidupan kerajaan yang masih berlangsung hingga kini.",
+                image: "https://i.pinimg.com/736x/8b/01/4f/8b014f13b6049b7c613b9ceec3b446d5.jpg",
+                link: "https://kebudayaan.jogjakota.go.id/page/index/kawasan-kraton"
+            },
+            {
+                name: "Gang Soka",
+                category: "budaya",
+                district: "yogyakarta",
+                lat: -7.82940504633366,
+                lng: 110.396293293258,
+                description: "Gang Soka adalah kawasan heritage yang memadukan keindahan arsitektur kolonial dengan nuansa budaya Jawa yang kental, dimana pengunjung dapat menikmati suasana gang-gang kecil yang dipelihara dengan baik, dihiasi dengan tanaman hias berwarna-warni dan mural-mural artistik yang menceritakan sejarah dan budaya lokal, menciptakan atmosfer yang Instagram-worthy untuk berfoto sambil belajar tentang kehidupan masyarakat urban Yogyakarta, dilengkapi dengan kedai-kedai kopi tradisional, warung makanan khas yang menyajikan kuliner autentik Jogja, toko-toko kerajinan lokal yang menjual berbagai souvenir unik, serta event-event budaya yang rutin diselenggarakan seperti pertunjukan musik akustik, pameran seni, dan festival kuliner yang menjadikan kawasan ini sebagai pusat kreativitas dan interaksi sosial yang dinamis.",
+                image: "https://static.promediateknologi.id/crop/0x0:0x0/0x0/webp/photo/p2/65/2024/09/10/17-3228970594.jpg",
+                link: "https://radarjogja.jawapos.com/wisata/655074216/menikmati-nuansa-klasik-dan-tradisional-di-gang-soka-kotagede-yogyakarta-sudut-legendaris-jogja-untuk-mempelajari-sejarah-dan-budaya-asli"
+            },
+            {
+                name: "Museum Sonobudoyo",
+                category: "budaya",
+                district: "yogyakarta",
+                lat: -7.8006,
+                lng: 110.3642,
+                description: "Museum kebudayaan Jawa terlengkap dengan koleksi artefak yang mencakup berbagai aspek kehidupan budaya Jawa. Koleksi wayang kulit, topeng, keris, dan berbagai benda pusaka memberikan gambaran komprehensif tentang kekayaan budaya Jawa. Pertunjukan wayang kulit yang rutin digelar memberikan kesempatan kepada pengunjung untuk menyaksikan seni pertunjukan tradisional yang otentik. Program edukasi dan workshop yang tersedia memungkinkan pengunjung untuk belajar membuat kerajinan tradisional. Museum ini menjadi pusat studi budaya Jawa yang penting bagi peneliti dan mahasiswa.",
+                image: "https://static.promediateknologi.id/crop/0x0:0x0/0x0/webp/photo/p2/222/2024/10/05/WhatsApp-Image-2024-09-30-at-154900-3719372467.jpeg",
+                link: "https://sonobudoyo.jogjaprov.go.id/id/"
+            },
+            {
+                name: "Museum Kota Gede",
+                category: "budaya",
+                district: "yogyakarta",
+                lat: -7.826195588,
+                lng: 110.392147137436,
+                description: "Museum yang khusus menampilkan sejarah dan perkembangan kerajinan perak Kotagede yang terkenal hingga mancanegara. Koleksi perhiasan perak, teknik pembuatan, dan sejarah perkembangan industri perak memberikan insight mendalam tentang keunggulan kerajinan lokal. Workshop pembuatan kerajinan perak memungkinkan pengunjung untuk belajar langsung dari pengrajin berpengalaman. Bangunan museum yang merupakan rumah tradisional Jawa menambah nilai historis dan estetika. Tempat ini menjadi jendela untuk memahami perjalanan industri kreatif Yogyakarta.",
+                image: "https://visitingjogja.jogjaprov.go.id/wp-content/uploads/2022/10/Museum-Kota-Gede.jpg",
+                link: "https://visitingjogja.jogjaprov.go.id/37890/museum-kotagede-intro-living-museum/"
+            },
+            {
+                name: "Embung Langensari",
+                category: "alam",
+                district: "yogyakarta",
+                lat: -7.786387478883765,
+                lng: 110.38228698082521,
+                description: "Embung Langensari adalah danau buatan yang dikelilingi oleh perbukitan hijau dan menawarkan suasana tenang yang cocok untuk rekreasi keluarga, dimana pengunjung dapat menikmati keindahan panorama air yang jernih memantulkan langit biru dan awan putih, sambil melakukan berbagai aktivitas seperti memancing ikan air tawar, berperahu mengelilingi danau, bersepeda di jalur khusus yang mengelilingi embung, atau sekadar duduk santai di gazebo-gazebo yang tersebar di pinggir danau sambil menikmati udara sejuk dan pemandangan sunset yang memukau, dilengkapi dengan fasilitas camping ground untuk yang ingin bermalam di bawah taburan bintang, warung-warung yang menyediakan makanan dan minuman segar, serta area bermain anak-anak yang aman dan menyenangkan.",
+                image: "https://image.idntimes.com/post/20250510/sefr4-a274b0c5ce43b6a911459f10efd9a65f-143888cdb5feb5653237e00e3f92d3e3.jpg?tr=w-1920,f-webp,q-75&width=1920&format=webp&quality=75",
+                link: "https://yogyakarta.kompas.com/read/2023/08/04/200122678/embung-langensari-di-yogyakarta-daya-tarik-jam-buka-dan-rute?page=all"
+            },
+            {
+                name: "GL - Zoo",
+                category: "alam",
+                district: "yogyakarta",
+                lat: -7.8027436841833975,
+                lng: 110.39815112206615,
+                description: "Gembira Loka Zoo adalah kebun binatang terbesar di Yogyakarta yang menampung lebih dari 470 spesies satwa dari berbagai belahan dunia, mulai dari mamalia besar seperti gajah, harimau, dan orangutan, hingga reptil eksotis dan berbagai jenis burung langka, dimana pengunjung tidak hanya dapat mengamati kehidupan satwa dari dekat tetapi juga belajar tentang konservasi alam dan pentingnya menjaga kelestarian biodiversitas melalui program edukasi yang interaktif, pertunjukan satwa yang menghibur dan mendidik, feeding time yang memungkinkan pengunjung memberikan makan langsung kepada beberapa jenis hewan jinak, serta wahana permainan seperti kereta keliling kebun binatang, perahu motor di danau buatan, dan playground yang membuat kunjungan menjadi pengalaman yang tak terlupakan bagi seluruh anggota keluarga.",
+                image: "https://upload.wikimedia.org/wikipedia/commons/3/3c/Gembira_Loka_Zoo_in_Yogyakarta.jpg",
+                link: "https://www.yogyes.com/id/yogyakarta-tourism-object/other/gembira-loka/"
+            },
+            {
+                name: "Gudeg Yu Djum",
+                category: "kuliner",
+                district: "yogyakarta",
+                lat: -7.7825,
+                lng: 110.3764,
+                description: "Gudeg legendaris Yogyakarta dengan cita rasa autentik yang telah menjadi icon kuliner kota. Proses memasak gudeg yang memakan waktu berjam-jam menghasilkan tekstur nangka muda yang lembut dengan rasa manis gurih yang khas. Pelengkap seperti ayam, telur, dan krecek memberikan variasi tekstur dan rasa dalam setiap penyajian. Tradisi keluarga dalam menjalankan warung ini memberikan konsistensi rasa dari generasi ke generasi. Tempat ini menjadi must-try destination bagi siapa saja yang berkunjung ke Yogyakarta.",
+                image: "https://i.pinimg.com/736x/7c/78/63/7c7863fb6a220a8845ee63808a061dcf.jpg",
+                link: "https://gudegyudjum.com/"
+            },
+            {
+                name: "Pasar Kranggan",
+                category: "kuliner",
+                district: "yogyakarta",
+                lat: -7.78215129162766,
+                lng: 110.365721195107,
+                description: "Pasar Kranggan adalah pasar tradisional yang menjadi surga kuliner bagi para pecinta makanan khas Yogyakarta, dimana wisatawan dapat menemukan berbagai jajanan tradisional seperti gudeg, bakpia, tahu campur, sate klatak, angkringan dengan nasi kucing, dan aneka oleh-oleh khas Jogja dengan harga yang sangat terjangkau, sambil merasakan pengalaman berbelanja di pasar tradisional yang autentik dengan suasana ramai dan penuh warna, interaksi langsung dengan pedagang lokal yang ramah dan bersahabat, serta kesempatan untuk belajar tentang bahan-bahan dasar masakan Jawa, rempah-rempah tradisional, dan teknik memasak yang telah diwariskan turun-temurun, menjadikan kunjungan ke pasar ini tidak hanya sebagai aktivitas berbelanja tetapi juga sebagai wisata budaya yang memperkaya pengetahuan tentang kehidupan masyarakat lokal.",
+                image: "https://gudeg.net/cni-content/uploads/modules/direktori/logo/20160926012407.jpg",
+                link: "https://gudeg.net/direktori/1362/pasar-kranggan-yogyakarta.html"
+            },
+            {
+                name: "Raminten",
+                category: "kuliner",
+                district: "yogyakarta",
+                lat: -7.784619679203707,
+                lng: 110.37159297774308,
+                description: "Restoran dengan konsep unik bergaya kerajaan Jawa yang memberikan dining experience yang theatrical dan memorable. Interior yang dipenuhi ornamen tradisional dan staff yang mengenakan kostum kerajaan menciptakan atmosfer yang authentic. Menu yang disajikan merupakan masakan tradisional Jawa dengan presentation yang modern. Entertainment berupa pertunjukan seni tradisional menambah value dari dining experience. Tempat ini cocok untuk special occasion, business dinner, atau cultural dining experience.",
+                image: "https://i.pinimg.com/736x/7f/d7/ee/7fd7ee1b7355ecea93a8616e4756aba3.jpg",
+                link: "https://raminten.com/"
+            },
+            {
+                name: "Bakmi Jowo Mbah Gito",
+                category: "kuliner",
+                district: "yogyakarta",
+                lat: -7.812570846926275,
+                lng: 110.39723371947882,
+                description: "Restoran dengan konsep unik bergaya kerajaan Jawa yang memberikan dWarung bakmi tradisional dengan cita rasa Jawa yang kental dan authentic. Mie yang dibuat fresh daily dengan topping ayam suwir, pangsit, dan sayuran segar memberikan comfort food yang satisfying. Kuah yang clear namun rich dengan rasa yang balance antara gurih dan sedikit manis khas Jawa. Porsi yang mengenyangkan dengan harga yang affordable membuatnya populer di kalangan mahasiswa dan pekerja. Warung sederhana dengan cita rasa yang exceptional menjadikannya hidden gem kuliner Yogyakarta.",
+                image: "https://i.pinimg.com/736x/e7/8f/cd/e78fcd214646e9ebd05214b47fbd6a83.jpg",
+                link: "https://www.yogyes.com/id/yogyakarta-culinary/bakmi-jowo-mbah-gito/"
+            },
+            {
+                name: "Taru Martani",
+                category: "kuliner",
+                district: "yogyakarta",
+                lat: -7.790940024716244,
+                lng: 110.3814105859161,
+                description: "Restoran terkenal yang menyajikan gudeg, makanan khas Yogyakarta.",
+                image: "https://i.pinimg.com/736x/a4/c7/ff/a4c7ff16fb7cc1b70bcd139a8ba3760c.jpg",
+                link: "https://www.cigarindonesia.id/"
+            },
+            {
+                name: "Puncak Segoro",
+                category: "alam",
+                district: "gunungkidul",
+                lat: -8.101650096106505,
+                lng: 110.4555801364876,
+                description: "Salah satu puncak tertinggi di kawasan Gunungkidul yang menawarkan pemandangan 360 derajat yang spektakuler. Dari ketinggian ini, pengunjung dapat melihat hamparan Samudra Hindia di sebelah selatan dan deretan pegunungan Sewu di sebelah utara. Nama Segoro yang berarti laut dalam bahasa Jawa sangat tepat karena dari sini terlihat luasnya lautan yang membentang hingga horizon. Trek menuju puncak cukup menantang namun sepadan dengan pemandangan yang disajikan, terutama saat sunrise ketika cahaya pertama matahari menyinari landscape dengan warna-warna yang memukau.",
+                image: "https://i.pinimg.com/736x/a4/5c/0a/a45c0a01eed0af525a7871329bbe43d3.jpg",
+                link: "https://radarmalioboro.jawapos.com/wisata/2224877158/mengenal-puncak-segoro-di-panggang-gunungkidul-destinasi-wisata-jogja-dengan-pesona-ala-nusa-penida-bali"
+            },
+            {
+                name: "Gunung Api Purba",
+                category: "alam",
+                district: "gunungkidul",
+                lat: -7.841343327,
+                lng: 110.5368484,
+                description: "Situs geologi yang memiliki nilai ilmiah tinggi sebagai bekas gunung berapi purba yang telah mati jutaan tahun lalu. Formasi batuan vulkanik yang tersingkap memberikan gambaran tentang aktivitas geologis masa lampau dan menjadi laboratorium alam untuk studi geologi. Pengunjung dapat mempelajari berbagai jenis batuan vulkanik, struktur geologi, dan sejarah pembentukan bumi melalui papan-papan interpretasi yang tersedia. Tempat ini juga menawarkan panorama alam yang indah dengan formasi batuan yang unik dan vegetasi khas daerah karst.",
+                image: "https://i.pinimg.com/736x/c0/86/dc/c086dc2dcf4681afa0cca5132c9c1c6e.jpg",
+                link: "https://ipmaba.wordpress.com/2010/04/27/nglanggeran-gunung-api-purba-yang-memesona/"
+            },
+            {
+                name: "Watu Lawang",
+                category: "alam",
+                district: "gunungkidul",
+                lat: -8.151508917733327,
+                lng: 110.61867949882978,
+                description: "Gerbang batu alami yang terbentuk dari proses geologis ribuan tahun, menciptakan portal alami yang menakjubkan. Formasi ini menyerupai pintu gerbang raksasa yang membuka ke arah pemandangan lembah hijau dan perbukitan yang bergelombang. Legenda lokal menyebutkan bahwa tempat ini memiliki kekuatan mistis dan sering digunakan untuk ritual spiritual oleh masyarakat setempat. Pengunjung dapat berjalan melewati gerbang ini sambil menikmati hembusan angin sejuk dan panorama alam yang masih pristine.",
+                image: "https://i.pinimg.com/736x/c1/5e/78/c15e78b21ab7ab3c99bad305b6c5403d.jpg",
+                link: "https://www.dejava.net/dejogja/pantai-watu-lawang-gunung-kidul"
+            },
+            {
+                name: "Jungwook",
+                category: "alam",
+                district: "gunungkidul",
+                lat: -8.19473813148256,
+                lng: 110.71334842176061,
+                description: "Pantai Jungwook adalah pantai eksotis yang terletak di pesisir selatan Yogyakarta dengan karakteristik pantai yang unik berupa hamparan pasir putih yang bersih, ombak yang tidak terlalu besar sehingga aman untuk berenang, dan formasi karang yang menarik untuk dijelajahi, dimana pengunjung dapat menikmati keindahan sunrise dan sunset yang spektakuler dengan warna langit yang berubah-ubah dari jingga ke ungu dan merah muda, melakukan aktivitas snorkeling untuk melihat kehidupan bawah laut yang masih alami, memancing dari atas karang atau dari perahu tradisional, berjalan-jalan menyusuri garis pantai sambil mengumpulkan kerang dan batu karang yang unik, serta menikmati seafood segar yang disajikan oleh warung-warung pinggir pantai dengan cita rasa yang autentik dan harga yang bersahabat.",
+                image: "https://i.pinimg.com/736x/68/0c/5a/680c5a0c3f06d9eb880cfe6a860cfb02.jpg",
+                link: "https://www.joglowisata.com/jungwok-blue-ocean.htm"
+            },
+            {
+                name: "Heha Ocean",
+                category: "alam",
+                district: "gunungkidul",
+                lat: -8.105745092496585,
+                lng: 110.46130906257746,
+                description: "Destinasi wisata pantai modern dengan konsep ocean view yang Instagram-able. Tempat ini menggabungkan keindahan alam pantai dengan fasilitas modern seperti sky lounge dan spot foto aesthetic yang unik. Dari ketinggian, pengunjung dapat menikmati panorama Samudra Hindia yang luas sambil menikmati menu kafe yang beragam. Desain arsitektur yang modern dengan elemen alam menciptakan harmoni yang menarik. Tempat ini cocok untuk millennials yang mencari pengalaman wisata yang instagramable namun tetap menikmati keindahan alam.",
+                image: "https://i.pinimg.com/736x/1e/f8/f3/1ef8f3f639f97ea081edb4fbc6ba9c9d.jpg",
+                link: "https://wisatamilenial.com/heha-ocean-view-gunung-kidul-lokasi-dan-harga-tiket-masuk-terbaru/"
+            },
+            {
+                name: "The Manglung",
+                category: "kuliner",
+                district: "gunungkidul",
+                lat: -7.84452432883283,
+                lng: 110.4827527,
+                description: "The Manglung adalah destinasi wisata alam yang menawarkan pengalaman unik berinteraksi dengan alam pegunungan melalui konsep glamping (glamorous camping) yang memadukan kenyamanan fasilitas modern dengan keindahan alam yang masih asri, dimana tamu dapat menginap di tenda-tenda mewah yang dilengkapi dengan tempat tidur nyaman, listrik, dan fasilitas mandi yang bersih, sambil tetap merasakan sensasi bermalam di tengah alam dengan suara gemericik air sungai, kicauan burung di pagi hari, dan hembusan angin sejuk pegunungan, dilengkapi dengan berbagai aktivitas outdoor seperti river tubing, flying fox, wall climbing, dan trekking ke air terjun tersembunyi yang memberikan pengalaman petualangan yang menantang sekaligus menyegarkan jiwa dan raga.",
+                image: "https://www.gudeg.net/cni-content/uploads/modules/direktori/logo/20180508090659.jpg",
+                link: "https://www.gudeg.net/direktori/7907/the-manglung.html"
+            },
+            {
+                name: "Kopi Panggang",
+                category: "kuliner",
+                district: "gunungkidul",
+                lat: -7.969074000303873,
+                lng: 110.41701198077484,
+                description: "Kedai kopi dengan konsep unik yang menggabungkan coffee shop dengan grilled food dalam satu tempat. Metode roasting kopi yang dilakukan in-house memberikan freshness dan quality control yang optimal. Menu fusion yang menggabungkan kopi dengan grilled food memberikan pengalaman dining yang berbeda. Suasana yang casual namun modern membuat tempat ini cocok untuk berbagai usia. Innovation dalam menu dan presentation menjadikannya trendsetter di industri cafe lokal.",
+                image: "https://i.pinimg.com/736x/99/07/b1/9907b1e8f5fc5b99ce5da3dd0ec3807f.jpg",
+                link: "https://visitingjogja.jogjaprov.go.id/25591/siap-menikmati-akhir-pekan-ditemani-kopi-panggang-andalan/"
+            },
+            {
+                name: "Taman Watu",
+                category: "kuliner",
+                district: "gunungkidul",
+                lat: -8.106424258370781,
+                lng: 110.46293579525549,
+                description: "Taman Watu adalah taman wisata yang menampilkan keindahan formasi batuan alam yang unik dan artistik, dimana pengunjung dapat menjelajahi berbagai bentuk batu kapur yang telah terukir secara alami oleh proses geologis selama jutaan tahun, menciptakan pemandangan yang eksotis dan fotogenik dengan berbagai gua kecil, celah-celah batuan, dan formasi stalaktit yang menakjubkan, sambil belajar tentang proses pembentukan karst dan sejarah geologis kawasan ini melalui papan informasi yang tersedia, dilengkapi dengan jalur trekking yang aman dan terawat, spot-spot istirahat dengan pemandangan yang indah, serta fasilitas pendukung seperti mushola, toilet, dan area parkir yang luas, menjadikan taman ini sebagai destinasi edukasi geologi yang menarik sekaligus tempat rekreasi yang menyenangkan.",
+                image: "https://visitingjogja.jogjaprov.go.id/wp-content/uploads/2022/08/taman-watu-resort-by-@tamanwaturesort.jpg",
+                link: "https://visitingjogja.jogjaprov.go.id/36589/taman-watu-resort-terdapat-sensasi-makan-dengan-background-tebing/"
+            },
+            {
+                name: "Nasi Merah Pari Pak Gogo",
+                category: "kuliner",
+                district: "gunungkidul",
+                lat: -7.99694217495947,
+                lng: 110.64997189494675,
+                description: "Restoran healthy food yang mengkhususkan diri pada nasi merah organik dengan berbagai pilihan lauk sehat dan bergizi. Konsep farm-to-table dengan ingredient yang fresh dan minimal processing memberikan nutritional value yang optimal. Menu yang beragam dari traditional hingga modern healthy food memberikan options untuk berbagai preferensi diet. Educational component tentang healthy eating habits memberikan added value bagi pengunjung. Tempat ini cocok untuk health-conscious diners dan yang sedang menjalani lifestyle sehat.",
+                image: "https://www.yogyes.com/id/yogyakarta-culinary/lesehan-pari-gogo/1.jpg",
+                link: "https://www.sarihusada.co.id/Nutrisi-Untuk-Bangsa/Aktivitas/Jelajah-Gizi/Lesehan-Pari-Gogo-One-Stop-Eating-In-Gunungkidul"
+            },
+            {
+                name: "Museum Radio Auri 2",
+                category: "budaya",
+                district: "gunungkidul",
+                lat: -7.944041718149389,
+                lng: 110.54244084782295,
+                description: "Museum komunikasi yang menampilkan evolusi teknologi radio dan komunikasi dari masa ke masa. Koleksi radio vintage, peralatan komunikasi militer, dan dokumentasi sejarah komunikasi di Indonesia memberikan gambaran tentang perkembangan teknologi. Interactive display memungkinkan pengunjung untuk mencoba mengoperasikan peralatan radio klasik. Program edukasi tentang teknologi komunikasi cocok untuk pelajar yang tertarik dengan bidang teknik dan komunikasi. Museum ini juga menyimpan sejarah penting komunikasi dalam perjuangan kemerdekaan Indonesia.",
+                image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRZCtDpDYc7tILalnrL-mi020DVZm0PgJF3pA&s",
+                link: "https://kebudayaan.kemdikbud.go.id/bpcbyogyakarta/monumen-stasiun-radio-phb-auri-pc-2/"
+            },
+            {
+                name: "Candi Plembutan",
+                category: "budaya",
+                district: "gunungkidul",
+                lat: -7.956475487329849,
+                lng: 110.55796870290357,
+                description: "Candi kecil yang tersembunyi dan jarang dikunjungi wisatawan, menjadikannya destinasi yang eksotis bagi pencinta sejarah. Candi ini memiliki keunikan dalam hal lokasi dan kondisinya yang masih alami. Struktur candi yang sederhana namun sarat makna memberikan gambaran tentang perkembangan arsitektur candi di Jawa. Suasana yang sepi dan damai membuat tempat ini cocok untuk introspeksi dan mempelajari sejarah dengan lebih mendalam. Akses yang agak tersembunyi menambah kesan petualangan dalam mengunjungi situs bersejarah ini.",
+                image: "https://patraindonesia.com/wp-content/uploads/2025/04/IMG-20250412-WA0045.jpg",
+                link: "https://patraindonesia.com/menyingkap-jejak-peradaban-hindu-situs-candi-plembutan-warisan-langka-dari-gunungkidul/"
+            },
+            {
+                name: "Wanagama",
+                category: "budaya",
+                district: "gunungkidul",
+                lat: -7.904402573344401,
+                lng: 110.52458852339029,
+                description: "Wanagama adalah hutan pendidikan dan penelitian yang dikelola oleh Universitas Gadjah Mada, menawarkan wisata edukasi tentang ekosistem hutan tropis dan konservasi alam, dimana pengunjung dapat belajar tentang berbagai jenis flora dan fauna endemik, teknik pengelolaan hutan berkelanjutan, dan pentingnya menjaga keseimbangan ekosistem melalui program-program edukasi yang dipandu oleh mahasiswa dan dosen kehutanan yang berpengalaman, sambil menikmati trekking di jalur-jalur hutan yang telah disiapkan dengan tingkat kesulitan yang bervariasi, mulai dari jalur mudah untuk keluarga hingga jalur menantang untuk para petualang, dilengkapi dengan shelter-shelter istirahat, menara pengamatan untuk bird watching, dan laboratorium alam yang memungkinkan pengunjung untuk melakukan pengamatan dan penelitian sederhana tentang kehidupan hutan.",
+                image: "https://budaya.jogjaprov.go.id/view_image/view/4286/WhatsApp%20Image%202022-06-30%20at%209.18.49%20AM.jpeg0",
+                link: "https://budaya.jogjaprov.go.id/berita/detail/1181-wanagama-eco-edu-forest"
+            },
+            {
+                name: "Geopark Gunung Sewu",
+                category: "budaya",
+                district: "gunungkidul",
+                lat: -8.016404721096453,
+                lng: 110.58551346312277,
+                description: "Geopark Gunung Sewu adalah kawasan konservasi geologi yang telah diakui oleh UNESCO sebagai Global Geopark, menampilkan keindahan landscape karst yang spektakuler dengan ribuan bukit kerucut (cone karst) yang tersebar dalam area yang luas, menciptakan pemandangan yang unik dan menakjubkan seperti seribu gunung yang menjadi asal nama kawasan ini, dimana pengunjung dapat menjelajahi berbagai gua-gua dengan stalaktit dan stalagmit yang menawan, mata air jernih yang mengalir dari perut bumi, serta situs-situs arkeologi yang menyimpan jejak peradaban prasejarah, sambil belajar tentang proses pembentukan karst, sejarah geologi bumi, dan pentingnya konservasi warisan geologi untuk generasi mendatang melalui museum geologi dan pusat informasi yang lengkap dengan display interaktif dan multimedia yang edukatif.",
+                image: "https://statik.tempo.co/data/2019/08/14/id_863964/863964_720.jpg",
+                link: "https://indonesia.go.id/kategori/pariwisata/8867/geosite-gunung-sewu-unesco-global-geopark?lang=1"
+            },
+            {
+                name: "Museum Kayu Wanagama",
+                category: "budaya",
+                district: "gunungkidul",
+                lat: -7.88402910315803,
+                lng: 110.5464337530329,
+                description: "Museum yang menampilkan kekayaan hutan Indonesia dengan koleksi berbagai spesies kayu dan produk turunannya. Koleksi mencakup sample kayu dari berbagai daerah di Indonesia dengan informasi tentang karakteristik, kegunaan, dan status konservasinya. Program edukasi kehutanan dan konservasi memberikan awareness tentang pentingnya menjaga kelestarian hutan. Workshop pembuatan kerajinan kayu memungkinkan pengunjung untuk belajar teknik woodworking tradisional. Museum ini menjadi pusat edukasi kehutanan yang penting untuk generasi muda.",
+                image: "https://www.gudeg.net/cni-content/uploads/modules/direktori/logo/20170124085859.jpeg",
+                link: "https://www.gudeg.net/direktori/1779/museum-kayu-wanagama-yogyakarta.html"
+            },
+            {
+                name: "Air Terjun Kembang soka",
+                category: "alam",
+                district: "kulonprogo",
+                lat: -7.76623069857358,
+                lng: 110.117773139334,
+                description: "Air terjun yang tersembunyi di dalam hutan dengan akses yang memerlukan trekking melalui jalur setapak yang menantang. Keindahan air terjun ini terletak pada setting alamnya yang masih virgin, dikelilingi oleh pepohonan tinggi dan bebatuan alami. Suara gemercik air yang jatuh dari ketinggian menciptakan simfoni alam yang menenangkan jiwa. Pool alami di bawah air terjun cocok untuk berenang, dengan air yang jernih dan segar sepanjang tahun.",
+                image: "https://sambanggo.kulonprogokab.go.id/storage/post-images/62lUYjJIBppb0poYGoEiKIOx3nbY518P5eRjH7vO.jpg",
+                link: "https://visitingjogja.jogjaprov.go.id/25734/berkunjung-ke-air-terjun-kembang-soka-yang-indahnya-mampu-melepas-gundah/"
+            },
+            {
+                name: "Dadap Sumilir",
+                category: "alam",
+                district: "kulonprogo",
+                lat: -7.74967143781879,
+                lng: 110.191159149065,
+                description: "Kawasan hutan konservasi dengan trek hiking yang menawarkan pengalaman immersive dengan alam. Hutan ini menjadi rumah bagi berbagai spesies burung dan satwa liar, menjadikannya surga bagi birdwatcher dan nature lover. Trek yang tersedia bervariasi dari mudah hingga menantang, dengan berbagai viewpoint yang menawarkan panorama hutan dan perbukitan. Program edukasi lingkungan yang tersedia membuat tempat ini cocok untuk wisata edukasi keluarga.",
+                image: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgfnfpgTas3o6tw3qZr2ZzUn9Rm0WQ9BHXX1pHm8d5ldyEpCv5AcooMon84_yS_Fhx9jtnb3eLQmoeL49G4cd0Ph1gNK_F_ycH1oRWUWoLR7OHozjqgttQTabWTx2gnhyyxQZYsXdFMaVeh/s640/Dadap+Sumilir+saat+malam.jpg",
+                link: "https://www.metrotvnews.com/play/N6GC8d9R-serunya-kulineran-sambil-gogoh-iwak-di-dadap-sumilir-kulon-progo"
+            },
+            {
+                name: "Puncak Widosari",
+                category: "alam",
+                district: "kulonprogo",
+                lat: -7.65750959284995,
+                lng: 110.148513209514,
+                description: "Destinasi hiking favorit dengan trek yang menantang namun dapat dijangkau oleh pendaki pemula. Puncak ini terkenal dengan sunrise yang menakjubkan, di mana pengunjung dapat menyaksikan matahari terbit dari balik pegunungan dengan latar belakang kabut tipis yang menyelimuti lembah. Udara segar pegunungan dan ketenangan alam membuat tempat ini cocok untuk meditasi dan refleksi diri. Fasilitas yang tersedia cukup lengkap dengan area camping, warung makan, dan toilet, sehingga nyaman untuk dikunjungi keluarga.",
+                image: "https://visitingjogja.jogjaprov.go.id/wp-content/uploads/2020/03/29739316_2127110257317503_8187519636951007232_n.jpg",
+                link: "https://visitingjogja.jogjaprov.go.id/25985/puncak-widosari-tak-hanya-eksotis-tapi-juga-menyimpan-nilai-historis/"
+            },
+            {
+                name: "Kedung Pedut",
+                category: "alam",
+                district: "kulonprogo",
+                lat: -7.759353943013229,
+                lng: 110.11804528160326,
+                description: "Kolam alami dengan air yang jernih dan sejuk, terbentuk dari aliran sungai bawah tanah yang muncul ke permukaan. Tempat ini menjadi oasis tersembunyi di tengah kawasan karst yang gersang, dengan air yang selalu segar sepanjang tahun. Kedalaman kolam yang bervariasi membuatnya cocok untuk berenang atau sekadar berendam kaki. Vegetasi hijau di sekitar kolam menciptakan suasana yang teduh dan sejuk, menjadikannya tempat yang sempurna untuk bersantai dan melepas lelah.",
+                image: "https://i.pinimg.com/736x/f5/db/84/f5db8452c4eeedf7f21a5eeb4156ace4.jpg",
+                link: "https://bob.kemenparekraf.go.id/370141-air-terjun-kedung-pedut/"
+            },
+            {
+                name: "Puncak Kleco",
+                category: "alam",
+                district: "kulonprogo",
+                lat: -7.708659478163771,
+                lng: 110.20691562263066,
+                description: "Bukit dengan ketinggian moderate yang menawarkan view panoramik ke segala arah. Dari puncak ini terlihat perpaduan landscape kota, persawahan, dan perbukitan yang menciptakan mozaik alam yang indah. Tempat ini populer untuk aktivitas paralayang bagi yang menyukai olahraga ekstrem, dengan kondisi angin yang mendukung sepanjang tahun. Akses menuju puncak relatif mudah dengan jalur yang sudah tertata baik, menjadikannya destinasi yang cocok untuk wisatawan segala usia.",
+                image: "https://jadesta.kemenparekraf.go.id/imgpost/35517.jpg",
+                link: "https://www.dewitinalah.com/p/puncak-kleco-desa-wisata-tinalah.html"
+            },
+            {
+                name: "Embung Kleco",
+                category: "kuliner",
+                district: "kulonprogo",
+                lat: -7.7774918109244,
+                lng: 110.163537066264,
+                description: "Danau kecil yang terletak di puncak bukit, menciptakan oasis di tengah landscape kering khas Kulon Progo. Air danau yang jernih memantulkan langit dan awan, menciptakan pemandangan yang sangat fotogenik. Tempat ini menawarkan ketenangan yang luar biasa, jauh dari kebisingan kota, dengan suara alam sebagai musik latar yang menenangkan. Pengunjung dapat berenang di danau atau sekadar duduk di tepi sambil menikmati keindahan alam yang masih alami.",
+                image: "https://cdn.digitaldesa.com/uploads/profil/34.01.02.1008/berita/dceb96add1143b957866dd9d51078091.png",
+                link: "https://seputarjogja.org/wisata-embung-kleco-kulon-progo-pesona-alam-yang-memukau/"
+            },
+            {
+                name: "Pulepayung",
+                category: "kuliner",
+                district: "kulonprogo",
+                lat: -7.79974879282034,
+                lng: 110.123714470476,
+                description: "Pulepayung adalah kawasan wisata pantai yang menawarkan keindahan pesisir selatan dengan karakteristik pantai yang masih alami dan belum terlalu ramai dikunjungi wisatawan, dimana pengunjung dapat menikmati suasana pantai yang tenang dan damai dengan pemandangan laut lepas yang luas, ombak yang besar dan menantang untuk para peselancar, serta hamparan pasir yang bersih untuk berjemur atau bermain voli pantai, dilengkapi dengan warung-warung sederhana yang menyajikan makanan laut segar dengan cita rasa yang autentik, spot-spot memancing yang strategis di atas karang atau di pinggir pantai, serta jalur trekking ke bukit-bukit di sekitar pantai yang memberikan panorama laut yang memukau, menjadikan tempat ini sebagai destinasi yang sempurna untuk mereka yang mencari ketenangan dan keindahan alam yang masih asri.",
+                image: "https://homestaydijogja.net/wp-content/uploads/2024/01/Bukit-Wisata-Pulepayung.jpg",
+                link: "https://bob.kemenparekraf.go.id/103951-tiket-masuk-pule-payung-yogyakarta-wisata-instagramable-terbaru/"
+            },
+            {
+                name: "Geblek Pari",
+                category: "kuliner",
+                district: "kulonprogo",
+                lat: -7.740044372789594,
+                lng: 110.20714094634114,
+                description: "Geblek Pari adalah tempat makan dengan kuliner pedesaan yang autentik. Lokasinya yang di area persawahan, menjadikan mata pengunjung akan disegarkan dengan hamparan kehijauan nan luas.",
+                image: "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/1c/b7/65/af/img20210307123324-largejpg.jpg?w=900&h=500&s=1",
+                link: "https://kumparan.com/seputar-yogyakarta/geblek-pari-kuliner-pedesaan-dengan-pemandangan-sawah-di-jogja-225wdDgHWhd/3"
+            },
+            {
+                name: "Pariboro",
+                category: "kuliner",
+                district: "kulonprogo",
+                lat: -7.740044372789594,
+                lng: 110.20714094634114,
+                description: "Pariboro adalah kawasan wisata yang menawarkan pengalaman unik menjelajahi alam pedesaan dengan konsep back to nature yang autentik, dimana wisatawan dapat tinggal di rumah-rumah tradisional Jawa yang masih asli dengan arsitektur joglo dan limasan, sambil ikut serta dalam aktivitas pertanian seperti menanam padi di sawah, memelihara ternak, membuat kerajinan tangan dari bahan-bahan alami seperti bambu dan pandan, serta belajar memasak makanan tradisional menggunakan tungku kayu dan peralatan dapur tradisional, menciptakan pengalaman wisata yang tidak hanya menghibur tetapi juga mendidik tentang kehidupan pedesaan yang sederhana namun kaya akan nilai-nilai budaya dan kearifan lokal, dilengkapi dengan pemandangan sawah yang hijau, udara yang bersih dan segar, serta kehangatan keramahan masyarakat lokal yang menjadikan setiap kunjungan sebagai pengalaman yang berkesan dan tak terlupakan.",
+                image: "https://www.gudeg.net/cni-content/uploads/modules/posts/20220108014151.jpg",
+                link: "https://www.gudeg.net/read/20083/pariboro-kuliner-ndeso-hamparan-sawah-dan-perbukitan-menoreh.html"
+            },
+            {
+                name: "Kuliner Khas Menoreh",
+                category: "kuliner",
+                district: "kulonprogo",
+                lat: -7.681526807635155,
+                lng: 110.2617292637395,
+                description: "Kawasan kuliner yang menampilkan aneka makanan tradisional dari daerah pegunungan Menoreh dengan cita rasa yang autentik. Berbagai warung yang tersebar menawarkan speciality masing-masing dengan ingredient lokal yang fresh. Suasana pedesaan yang asri memberikan dining experience yang berbeda dari restoran perkotaan. Traditional cooking methods yang masih dipertahankan memberikan authentic taste yang melekat dilidah.",
+                image: "https://www.yogyes.com/id/yogyakarta-culinary/kedai-kopi-menoreh/1.jpg",
+                link: "https://www.yogyes.com/id/yogyakarta-culinary/kedai-kopi-menoreh/"
+            },
+            {
+                name: "Museum Bale Agung",
+                category: "budaya",
+                district: "kulonprogo",
+                lat: -7.857425479463634,
+                lng: 110.15987321130312,
+                description: "Museum budaya lokal yang menampilkan etnografi dan kehidupan masyarakat Yogyakarta dari berbagai periode. Koleksi pakaian tradisional, peralatan rumah tangga, dan dokumentasi kehidupan sosial memberikan gambaran komprehensif tentang budaya lokal. Replica rumah tradisional dengan interior autentik memberikan pengalaman immersive tentang kehidupan masa lampau. Program cultural tourism yang tersedia memungkinkan pengunjung untuk berinteraksi dengan budaya lokal secara langsung. Museum ini menjadi jembatan antara masa lalu dan masa kini dalam konteks budaya",
+                image: "https://www.indonesia-tourism.com/yogyakarta/kulonprogo/images/bale_agung_museum.jpg",
+                link: "https://www.tuguwisata.com/bale-agung-kulon-progo/"
+            },
+            {
+                name: "Situs Purbakala Gono Tirto",
+                category: "budaya",
+                district: "kulonprogo",
+                lat: -7.780935587438927,
+                lng: 110.09571535435089,
+                description: "Situs arkeologi yang menyimpan jejak peradaban masa lampau dengan berbagai temuan artefak bersejarah. Situs ini memberikan gambaran tentang kehidupan masyarakat prasejarah dan perkembangan peradaban di kawasan Yogyakarta. Ekskavasi yang dilakukan secara berkala terus mengungkap misteri masa lalu yang tersimpan di dalam tanah. Program edukasi arkeologi yang tersedia memberikan kesempatan kepada pengunjung untuk memahami metodologi penelitian arkeologi. Tempat ini cocok untuk wisata pendidikan dan penelitian sejarah.",
+                image: "https://ak-d.tripcdn.com/images/0HJ1p12000iu5z38e370C_C_670_376_Q70.webp?proc=source%2ftrip&proc=source%2ftrip",
+                link: "https://kebudayaan.kemdikbud.go.id/bpcbyogyakarta/lingga-dan-legen-di-situs-tirto/"
+            },
+            {
+                name: "Situs Stupa Glagah",
+                category: "budaya",
+                district: "kulonprogo",
+                lat: -7.892113490517562,
+                lng: 110.06923658052428,
+                description: "Stupa Buddha kuno yang memiliki nilai spiritual dan sejarah tinggi sebagai peninggalan masa kejayaan Buddha di Jawa. Struktur stupa yang unik mencerminkan arsitektur Buddha klasik dengan makna filosofis yang mendalam. Tempat ini masih digunakan untuk kegiatan spiritual dan meditasi oleh umat Buddha. Ketenangan dan aura spiritual yang terpancar dari situs ini memberikan pengalaman spiritual yang mendalam. Stupa ini juga menjadi saksi bisu perkembangan agama Buddha di Nusantara pada masa lalu.",
+                image: "https://pdbifiles.nos.jkt-1.neo.id/files/2014/04/22/roby08darisandi_stupa.jpg",
+                link: "https://jogjacagar.jogjaprov.go.id/detail/4148/stupa-glagah"
+            },
+            {
+                name: "Cagar Budaya Bulurejo",
+                category: "budaya",
+                district: "kulonprogo",
+                lat: -7.841698668547777,
+                lng: 110.16432961007747,
+                description: "Kawasan pelestarian budaya yang mempertahankan arsitektur dan tata ruang tradisional Jawa. Bangunan-bangunan bersejarah yang tersebar di kawasan ini menunjukkan evolusi arsitektur rumah tradisional Jawa dari masa ke masa. Program revitalisasi yang dilakukan menjaga keaslian budaya sambil tetap mengakomodasi kebutuhan modern. Pengunjung dapat mempelajari arsitektur tradisional, sistem sosial masyarakat Jawa, dan kehidupan rural yang autentik. Kegiatan budaya seperti pertunjukan seni dan workshop kerajinan tradisional rutin digelar di kawasan ini.",
+                image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQxPEFsVvr4JQIFZAP-jYl1pXNUvdGFyAXn_w&s",
+                link: "https://www.patmamedia.com/berita/rintisan-museum-eks-pengepul-nila-bulurejo-berisikan-sejarah-kulonprogo"
+            },
+        ];
+        
+        // Kelompokkan data berdasarkan kategori untuk filter
+        const categories = {
+            alam: [],
+            budaya: [],
+            kuliner: []
+        };
+        
+        tourismData.forEach(item => {
+            categories[item.category].push(item);
+        });
+        
+        // Kelompokkan data berdasarkan kabupaten/kota untuk filter
+        const districts = {
+            yogyakarta: [],
+            bantul: [],
+            sleman: [],
+            gunungkidul: [],
+            kulonprogo: []
+        };
+        
+        tourismData.forEach(item => {
+            if (districts[item.district]) {
+                districts[item.district].push(item);
+            }
+        });
+        
+        // Fungsi untuk mendapatkan warna berdasarkan kategori
+        function getCategoryColor(category) {
+            const colors = {
+                alam: '#e74c3c',
+                budaya: '#3498db',
+                kuliner: '#f39c12'
+            };
+            return colors[category] || '#95a5a6';
+        }
+        
+        // Buat layer group untuk marker wisata
+        const tourismLayer = L.layerGroup().addTo(map);
+        
+        // Variabel untuk menyimpan rute
+        let routingControl = null;
+        
+        // Fungsi untuk mengisi dropdown titik awal dan tujuan
+        function populateRouteSelects() {
+            const startPointSelect = document.getElementById('start-point');
+            const endPointSelect = document.getElementById('end-point');
+            
+            // Kosongkan dropdown terlebih dahulu
+            startPointSelect.innerHTML = '<option value="">Pilih titik awal</option>';
+            endPointSelect.innerHTML = '<option value="">Pilih titik tujuan</option>';
+            
+            // Isi dropdown dengan data wisata
+            tourismData.forEach(item => {
+                const option = document.createElement('option');
+                option.value = tourismData.indexOf(item);
+                option.textContent = item.name;
+                
+                startPointSelect.appendChild(option.cloneNode(true));
+                endPointSelect.appendChild(option);
+            });
+        }
+        
+        // Panggil fungsi untuk mengisi dropdown
+        populateRouteSelects();
+        
+        // Tambahkan marker untuk setiap objek wisata
+        tourismData.forEach(item => {
+            const marker = L.marker([item.lat, item.lng], {
+                icon: L.divIcon({
+                    className: 'custom-icon',
+                    html: `<div style="background-color: ${getCategoryColor(item.category)}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px;"><i class="fas ${item.category === 'alam' ? 'fa-mountain' : item.category === 'budaya' ? 'fa-theater-masks' : 'fa-utensils'}"></i></div>`,
+                    iconSize: [24, 24]
+                })
+            });
+            
+            // Tambahkan popup untuk marker
+            marker.bindPopup(`
+                <div class="popup-content">
+                    <div class="popup-title">${item.name}</div>
+                    <img class="popup-image" src="${item.image}" alt="${item.name}">
+                    <div class="popup-category">${item.category === 'alam' ? 'Wisata Alam' : item.category === 'budaya' ? 'Wisata Budaya' : 'Wisata Kuliner'}</div>
+                    <div class="popup-description">${item.description}</div>
+                    <a href="${item.link}" target="_blank" class="popup-link">Lebih lanjut →</a>
+                </div>
+            `);
+            
+            // Tambahkan event click untuk menampilkan info panel
+            marker.on('click', function() {
+                document.getElementById('info-title').textContent = item.name;
+                document.getElementById('info-image').src = item.image;
+                document.getElementById('info-image').alt = item.name;
+                document.getElementById('info-category').textContent = `Kategori: ${item.category === 'alam' ? 'Wisata Alam' : item.category === 'budaya' ? 'Wisata Budaya' : 'Wisata Kuliner'}`;
+                document.getElementById('info-location').textContent = `Lokasi: ${item.district === 'yogyakarta' ? 'Kota Yogyakarta' : item.district === 'bantul' ? 'Bantul' : item.district === 'sleman' ? 'Sleman' : item.district === 'gunungkidul' ? 'Gunung Kidul' : 'Kulon Progo'}`;
+                document.getElementById('info-description').textContent = item.description;
+                document.getElementById('info-link').href = item.link;
+                
+                document.getElementById('info-panel').classList.remove('hidden');
+            });
+            
+            marker.addTo(tourismLayer);
+        });
+        
+        // Fungsi untuk memfilter marker berdasarkan kategori dan kabupaten/kota
+        function filterMarkers() {
+            const selectedCategory = document.getElementById('category-filter').value;
+            const selectedDistrict = document.getElementById('district-filter').value;
+            
+            tourismLayer.clearLayers();
+            
+            tourismData.forEach(item => {
+                const categoryMatch = selectedCategory === 'all' || item.category === selectedCategory;
+                const districtMatch = selectedDistrict === 'all' || item.district === selectedDistrict;
+                
+                if (categoryMatch && districtMatch) {
+                    const marker = L.marker([item.lat, item.lng], {
+                        icon: L.divIcon({
+                            className: 'custom-icon',
+                            html: `<div style="background-color: ${getCategoryColor(item.category)}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px;"><i class="fas ${item.category === 'alam' ? 'fa-mountain' : item.category === 'budaya' ? 'fa-theater-masks' : 'fa-utensils'}"></i></div>`,
+                            iconSize: [24, 24]
+                        })
+                    });
+                    
+                    marker.bindPopup(`
+                        <div class="popup-content">
+                            <div class="popup-title">${item.name}</div>
+                            <img class="popup-image" src="${item.image}" alt="${item.name}">
+                            <div class="popup-category">${item.category === 'alam' ? 'Wisata Alam' : item.category === 'budaya' ? 'Wisata Budaya' : 'Wisata Kuliner'}</div>
+                            <div class="popup-description">${item.description}</div>
+                            <a href="${item.link}" target="_blank" class="popup-link">Lebih lanjut →</a>
+                        </div>
+                    `);
+                    
+                    marker.on('click', function() {
+                        document.getElementById('info-title').textContent = item.name;
+                        document.getElementById('info-image').src = item.image;
+                        document.getElementById('info-image').alt = item.name;
+                        document.getElementById('info-category').textContent = `Kategori: ${item.category === 'alam' ? 'Wisata Alam' : item.category === 'budaya' ? 'Wisata Budaya' : 'Wisata Kuliner'}`;
+                        document.getElementById('info-location').textContent = `Lokasi: ${item.district === 'yogyakarta' ? 'Kota Yogyakarta' : item.district === 'bantul' ? 'Bantul' : item.district === 'sleman' ? 'Sleman' : item.district === 'gunungkidul' ? 'Gunung Kidul' : 'Kulon Progo'}`;
+                        document.getElementById('info-description').textContent = item.description;
+                        document.getElementById('info-link').href = item.link;
+                        
+                        document.getElementById('info-panel').classList.remove('hidden');
+                    });
+                    
+                    marker.addTo(tourismLayer);
+                }
+            });
+            
+            // Setelah filter, perbarui dropdown rute
+            populateRouteSelects();
+        }
+        
+        // Event listener untuk filter
+        document.getElementById('category-filter').addEventListener('change', filterMarkers);
+        document.getElementById('district-filter').addEventListener('change', filterMarkers);
+        
+        // Fungsi untuk menampilkan rute
+        document.getElementById('show-route').addEventListener('click', function() {
+            const startIndex = document.getElementById('start-point').value;
+            const endIndex = document.getElementById('end-point').value;
+            
+            if (startIndex === "" || endIndex === "") {
+                alert("Silakan pilih titik awal dan tujuan terlebih dahulu!");
+                return;
+            }
+            
+            if (startIndex === endIndex) {
+                alert("Titik awal dan tujuan tidak boleh sama!");
+                return;
+            }
+            
+            const startPoint = tourismData[startIndex];
+            const endPoint = tourismData[endIndex];
+            
+            // Hapus rute sebelumnya jika ada
+            if (routingControl) {
+                map.removeControl(routingControl);
+            }
+            
+            // Buat rute baru
+            routingControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(startPoint.lat, startPoint.lng),
+                    L.latLng(endPoint.lat, endPoint.lng)
+                ],
+                routeWhileDragging: true,
+                showAlternatives: true,
+                altLineOptions: {
+                    styles: [
+                        {color: 'black', opacity: 0.15, weight: 9},
+                        {color: 'white', opacity: 0.8, weight: 6},
+                        {color: 'blue', opacity: 0.5, weight: 2}
+                    ]
+                },
+                lineOptions: {
+                    styles: [
+                        {color: 'black', opacity: 0.15, weight: 9},
+                        {color: 'white', opacity: 0.8, weight: 6},
+                        {color: 'blue', opacity: 0.5, weight: 2}
+                    ]
+                },
+                addWaypoints: false,
+                draggableWaypoints: false,
+                fitSelectedRoutes: true,
+                show: true
+            }).addTo(map);
+            
+            // Zoom ke rute
+            map.fitBounds([
+                [startPoint.lat, startPoint.lng],
+                [endPoint.lat, endPoint.lng]
+            ]);
+        });
+        
+        // Fungsi untuk menghapus rute
+        document.getElementById('clear-route').addEventListener('click', function() {
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+            
+            // Reset dropdown
+            document.getElementById('start-point').value = "";
+            document.getElementById('end-point').value = "";
+        });
+        
+        // Fungsi untuk zoom in
+        document.getElementById('zoom-in').addEventListener('click', function() {
+            map.zoomIn();
+        });
+        
+        // Fungsi untuk zoom out
+        document.getElementById('zoom-out').addEventListener('click', function() {
+            map.zoomOut();
+        });
+        
+        // Fungsi untuk reset view
+        document.getElementById('reset-view').addEventListener('click', function() {
+            map.setView([-7.797068, 110.370529], 11);
+        });
+        
+        // Fungsi untuk locate me
+        document.getElementById('locate-me').addEventListener('click', function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    map.setView([position.coords.latitude, position.coords.longitude], 13);
+                    L.marker([position.coords.latitude, position.coords.longitude], {
+                        icon: L.divIcon({
+                            className: 'custom-icon',
+                            html: '<div style="background-color: #e74c3c; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px;"><i class="fas fa-user"></i></div>',
+                            iconSize: [24, 24]
+                        })
+                    }).addTo(map).bindPopup('Lokasi Anda').openPopup();
+                }, function(error) {
+                    alert('Tidak dapat mendapatkan lokasi Anda: ' + error.message);
+                });
+            } else {
+                alert('Geolocation tidak didukung oleh browser Anda.');
+            }
+        });
+    </script>
+</body>
+</html>
